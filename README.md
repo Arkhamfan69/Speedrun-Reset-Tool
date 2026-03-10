@@ -19,5 +19,4 @@ A small WinForms tool for easily deleting save files for speedrunning purposes.
 ## Notes
 
 - Speedrunning purposes only  
-- Ensure your game is closed when deleting save files  
 - Simple and lightweight, great for speedrunning and quick resets  
