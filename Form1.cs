@@ -26,7 +26,7 @@ namespace SpeedrunResetTool
         {
             InitializeComponent();
 
-            keyTimer.Interval = 10; // check keys every 10ms
+            keyTimer.Interval = 10;
             keyTimer.Tick += KeyCheck;
             keyTimer.Start();
         }
@@ -40,7 +40,6 @@ namespace SpeedrunResetTool
                 return;
             }
 
-            // Load save files for the selected game
             if (gamesSaveFiles.ContainsKey(selectedGame))
             {
                 checkedListBox1.Items.Clear();
@@ -89,7 +88,6 @@ namespace SpeedrunResetTool
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
-                // Ensure game exists in dictionary
                 if (!gamesSaveFiles.ContainsKey(selectedGame))
                 {
                     gamesSaveFiles[selectedGame] = new GameData();
@@ -115,7 +113,6 @@ namespace SpeedrunResetTool
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
-                // Ensure game exists in dictionary
                 if (!gamesSaveFiles.ContainsKey(selectedGame))
                 {
                     gamesSaveFiles[selectedGame] = new GameData();
@@ -139,7 +136,6 @@ namespace SpeedrunResetTool
                 return;
             }
 
-            // Delete checked files
             for (int i = 0; i < checkedListBox1.Items.Count; i++)
             {
                 if (checkedListBox1.GetItemChecked(i))
@@ -155,7 +151,6 @@ namespace SpeedrunResetTool
                         MessageBox.Show($"Could not delete {file}: {ex.Message}");
                     }
 
-                    // Uncheck the item instead of removing it
                     checkedListBox1.SetItemChecked(i, false);
                 }
             }
@@ -192,7 +187,6 @@ namespace SpeedrunResetTool
 
             GameData gameData = gamesSaveFiles[selectedGame];
 
-            // Ask if game needs to be closed
             DialogResult result = MessageBox.Show(
                 $"Does '{selectedGame}' need to be closed for save files to restore?",
                 "Close Game?",
@@ -201,15 +195,13 @@ namespace SpeedrunResetTool
 
             if (result == DialogResult.Yes)
             {
-                // Close the game if exe path is set
                 if (!string.IsNullOrEmpty(gameData.ExePath))
                 {
                     CloseGameProcess();
-                    System.Threading.Thread.Sleep(500); // Wait for game to close
+                    System.Threading.Thread.Sleep(500);
                 }
             }
 
-            // Delete all save files for this game
             foreach (string file in gameData.SaveFiles)
             {
                 try
@@ -223,7 +215,6 @@ namespace SpeedrunResetTool
             gameData.SaveFiles.Clear();
             checkedListBox1.Items.Clear();
 
-            // Relaunch game if needed
             if (result == DialogResult.Yes && !string.IsNullOrEmpty(gameData.ExePath))
             {
                 try
@@ -266,4 +257,5 @@ namespace SpeedrunResetTool
             }
         }
     }
+
 }
