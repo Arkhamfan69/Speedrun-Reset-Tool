@@ -1,0 +1,30 @@
+# Ignore build output folders
+bin/
+obj/
+
+# Ignore user-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio temporary files
+.vs/
+*.VC.db
+*.VC.VC.opendb
+
+# Visual Studio Code settings
+.vscode/
+
+# Logs, temporary files
+*.log
+*.tmp
+*.cache
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# NuGet Packages (optional, usually restored automatically)
+*.nupkg
+packages/
