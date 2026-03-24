@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
-using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Windows.Forms;
+using System.Runtime.InteropServices;
 
 namespace SpeedrunResetTool
 {
@@ -13,6 +15,13 @@ namespace SpeedrunResetTool
         {
             public List<string> SaveFiles { get; set; } = new List<string>();
             public string ExePath { get; set; } = "";
+        }
+
+        public class GameDataSerializable
+        {
+            public required string Name { get; set; }
+            public required string ExePath { get; set; }
+            public required List<string> SaveFiles { get; set; }
         }
 
         private Dictionary<string, GameData> gamesSaveFiles = new Dictionary<string, GameData>();
@@ -25,32 +34,65 @@ namespace SpeedrunResetTool
         public Form1()
         {
             InitializeComponent();
-
+            LoadGameData();
             keyTimer.Interval = 10;
             keyTimer.Tick += KeyCheck;
             keyTimer.Start();
         }
 
+        private void LoadGameData()
+        {
+            if (!File.Exists("gamedata.json"))
+                return;
+            try
+            {
+                string json = File.ReadAllText("gamedata.json");
+                var list = JsonSerializer.Deserialize<List<GameDataSerializable>>(json);
+                if (list == null)
+                    return;
+                gamesSaveFiles.Clear();
+                foreach (var item in list)
+                {
+                    gamesSaveFiles[item.Name] = new GameData
+                    {
+                        ExePath = item.ExePath,
+                        SaveFiles = item.SaveFiles ?? new List<string>()
+                    };
+                }
+            }
+            catch { }
+        }
+
+        private void SaveGameData()
+        {
+            var list = new List<GameDataSerializable>();
+            foreach (var kvp in gamesSaveFiles)
+            {
+                list.Add(new GameDataSerializable
+                {
+                    Name = kvp.Key,
+                    ExePath = kvp.Value.ExePath,
+                    SaveFiles = kvp.Value.SaveFiles
+                });
+            }
+            try
+            {
+                string json = JsonSerializer.Serialize(list, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText("gamedata.json", json);
+            }
+            catch { }
+        }
+
         private void gameComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             string selectedGame = gameComboBox.SelectedItem?.ToString() ?? "";
+            checkedListBox1.Items.Clear();
             if (string.IsNullOrEmpty(selectedGame))
-            {
-                checkedListBox1.Items.Clear();
                 return;
-            }
-
             if (gamesSaveFiles.ContainsKey(selectedGame))
             {
-                checkedListBox1.Items.Clear();
                 foreach (string file in gamesSaveFiles[selectedGame].SaveFiles)
-                {
                     checkedListBox1.Items.Add(file);
-                }
-            }
-            else
-            {
-                checkedListBox1.Items.Clear();
             }
         }
 
@@ -60,14 +102,11 @@ namespace SpeedrunResetTool
             {
                 e.Handled = true;
                 string gameName = gameComboBox.Text.Trim();
-                
                 if (!string.IsNullOrEmpty(gameName) && !gameComboBox.Items.Contains(gameName))
                 {
                     gameComboBox.Items.Add(gameName);
                     if (!gamesSaveFiles.ContainsKey(gameName))
-                    {
                         gamesSaveFiles[gameName] = new GameData();
-                    }
                     gameComboBox.SelectedItem = gameName;
                 }
             }
@@ -81,20 +120,25 @@ namespace SpeedrunResetTool
                 MessageBox.Show("Please select or type a game name first!");
                 return;
             }
-
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Filter = "Executable Files (*.exe)|*.exe|All Files (*.*)|*.*";
             dialog.Title = $"Select .exe for {selectedGame}";
-
+            string steamCommonDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                "Steam", "steamapps", "common"
+            );
+            if (Directory.Exists(steamCommonDir))
+                dialog.InitialDirectory = steamCommonDir;
             if (dialog.ShowDialog() == DialogResult.OK)
             {
                 if (!gamesSaveFiles.ContainsKey(selectedGame))
                 {
                     gamesSaveFiles[selectedGame] = new GameData();
-                    gameComboBox.Items.Add(selectedGame);
+                    if (!gameComboBox.Items.Contains(selectedGame))
+                        gameComboBox.Items.Add(selectedGame);
                 }
-
                 gamesSaveFiles[selectedGame].ExePath = dialog.FileName;
+                SaveGameData();
                 MessageBox.Show($"EXE set to: {dialog.FileName}");
             }
         }
@@ -107,23 +151,26 @@ namespace SpeedrunResetTool
                 MessageBox.Show("Please select or type a game name first!");
                 return;
             }
-
+            
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Multiselect = true;
-
+            string localAppDataDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (Directory.Exists(localAppDataDir))
+                dialog.InitialDirectory = localAppDataDir;
             if (dialog.ShowDialog() == DialogResult.OK)
             {
                 if (!gamesSaveFiles.ContainsKey(selectedGame))
                 {
                     gamesSaveFiles[selectedGame] = new GameData();
-                    gameComboBox.Items.Add(selectedGame);
+                    if (!gameComboBox.Items.Contains(selectedGame))
+                        gameComboBox.Items.Add(selectedGame);
                 }
-
                 foreach (string file in dialog.FileNames)
                 {
                     gamesSaveFiles[selectedGame].SaveFiles.Add(file);
                     checkedListBox1.Items.Add(file);
                 }
+                SaveGameData();
             }
         }
 
@@ -135,34 +182,23 @@ namespace SpeedrunResetTool
                 MessageBox.Show("Please select a game first!");
                 return;
             }
-
             for (int i = 0; i < checkedListBox1.Items.Count; i++)
             {
                 if (checkedListBox1.GetItemChecked(i))
                 {
                     string file = checkedListBox1.Items[i]?.ToString() ?? "";
-                    try
-                    {
-                        if (File.Exists(file))
-                            File.Delete(file);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Could not delete {file}: {ex.Message}");
-                    }
-
+                    try { if (File.Exists(file)) File.Delete(file); } catch { }
                     checkedListBox1.SetItemChecked(i, false);
                 }
             }
-
+            SaveGameData();
             MessageBox.Show("Selected save files deleted!");
         }
 
-        private void KeyCheck(object? sender, EventArgs e)
+        private void KeyCheck(object sender, EventArgs e)
         {
             bool pPressed = (GetAsyncKeyState(Keys.P) & 0x8000) != 0;
             bool lPressed = (GetAsyncKeyState(Keys.L) & 0x8000) != 0;
-
             if (pPressed && lPressed)
             {
                 if (!triggered)
@@ -181,81 +217,49 @@ namespace SpeedrunResetTool
         {
             string selectedGame = gameComboBox.SelectedItem?.ToString() ?? "";
             if (string.IsNullOrEmpty(selectedGame) || !gamesSaveFiles.ContainsKey(selectedGame))
-            {
                 return;
-            }
-
-            GameData gameData = gamesSaveFiles[selectedGame];
-
-            DialogResult result = MessageBox.Show(
+            var gameData = gamesSaveFiles[selectedGame];
+            var result = MessageBox.Show(
                 $"Does '{selectedGame}' need to be closed for save files to restore?",
                 "Close Game?",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
-
             if (result == DialogResult.Yes)
             {
                 if (!string.IsNullOrEmpty(gameData.ExePath))
                 {
-                    CloseGameProcess();
+                    CloseGameProcess(gameData.ExePath);
                     System.Threading.Thread.Sleep(500);
                 }
             }
-
             foreach (string file in gameData.SaveFiles)
             {
-                try
-                {
-                    if (File.Exists(file))
-                        File.Delete(file);
-                }
+                try { if (File.Exists(file)) File.Delete(file); }
                 catch { }
             }
-
             gameData.SaveFiles.Clear();
             checkedListBox1.Items.Clear();
-
             if (result == DialogResult.Yes && !string.IsNullOrEmpty(gameData.ExePath))
             {
-                try
-                {
-                    _ = Process.Start(gameData.ExePath);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Could not relaunch game: {ex.Message}");
-                }
+                try { Process.Start(gameData.ExePath); }
+                catch { }
             }
-
             MessageBox.Show($"All save files for '{selectedGame}' deleted!");
         }
 
-        private void CloseGameProcess()
+        private void CloseGameProcess(string exePath)
         {
-            string selectedGame = gameComboBox.SelectedItem?.ToString() ?? "";
-            if (string.IsNullOrEmpty(selectedGame) || !gamesSaveFiles.ContainsKey(selectedGame))
-                return;
-
-            string exePath = gamesSaveFiles[selectedGame].ExePath;
-            if (string.IsNullOrEmpty(exePath))
-                return;
-
-            string exeName = Path.GetFileNameWithoutExtension(exePath) ?? "";
-            if (string.IsNullOrEmpty(exeName))
-                return;
-
-            Process[] processes = Process.GetProcessesByName(exeName);
-
-            foreach (Process process in processes)
+            string exeName = Path.GetFileNameWithoutExtension(exePath);
+            var processes = Process.GetProcessesByName(exeName);
+            foreach (var p in processes)
             {
                 try
                 {
-                    process.Kill();
-                    process.WaitForExit();
+                    p.Kill();
+                    p.WaitForExit();
                 }
                 catch { }
             }
         }
     }
-
 }
