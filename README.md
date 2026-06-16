@@ -1,23 +1,22 @@
 # Speedrun Reset Tool
-
-A small WinForms tool for easily deleting save files for speedrunning purposes.
+A small WinForms application for fast saving and deletion of save files used in speedruns.
 
 ## Features
+- Work with multiple games in one list;
+- Deletion of particular save file through **Delete Selected Save File** button;
+- Deleting all save files of a particular game with one single key;
+- Launching of games from Steam library when necessary;
+- Improved WinForms layout scaling abilities;
+- The save file picker opens in default location `%LocalAppData%`.
 
-- Delete all save files with one key press using **P + L**  
-- Delete individual save files with **Delete Selected** button  
-- Simple and lightweight WinForms interface  
-- Prompts user to reopen the game to apply save file changes  
+## Usage Guide
+1. Input the name of the game.
+2. Select save files using **Select Save File** button.
+3. Delete individual save file using **Delete Selected Save File** button.
+4. Press your hotkey to delete all save files of the selected game.
+5. If the game uses Steam, the application will automatically attempt to launch it from Steam.
 
-## How to Use
-
-1. Type your game name into the dropdown box
-2. Click **Add Save File** to add your game’s save files to the list.  
-3. Delete **individual save files** using **Delete Selected** button.  
-4. Delete **all save files** with one key press using **P + L**.  
-5. Prompt will ask you to **reopen your game** for the save file changes to take effect.  
-
-## Notes
-
-- Speedrunning purposes only  
-- Simple and lightweight, great for speedrunning and quick resets  
+## Additional Notes
+- Only for use in speedruns/practice runs;
+- All settings will be saved in your AppData folder.
+- In case auto-launching does not work, you can input Steam App ID manually.
